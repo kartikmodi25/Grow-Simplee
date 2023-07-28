@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"backend-assignment/database/models"
 	"fmt"
 	"log"
 	"os"
@@ -32,15 +33,21 @@ func GetConnection() (*gorm.DB, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "db.New")
 	}
-
-	// db._db = sqlDb
-
-	// return db, nil
-
-	// db, err := sql.Open("postgres")
-
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "db.GetConnection")
-	// }
 	return sqlDb, nil
+}
+func CheckExistingUser(db *gorm.DB, email string) (bool, error) {
+	var userCount int64
+	err := db.Model(&models.User{}).Where(&models.User{Email: email}).Count(&userCount).Error
+	return userCount > 0, err
+}
+
+func CreateUser(db *gorm.DB, name string, email string, password string, accessToken string) error {
+	user := models.User{
+		Name:        name,
+		Email:       email,
+		Password:    password,
+		AccessToken: accessToken,
+	}
+	err := db.Model(&models.User{}).Create(&user).Error
+	return err
 }
