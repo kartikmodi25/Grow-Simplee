@@ -40,14 +40,54 @@ func CheckExistingUser(db *gorm.DB, email string) (bool, error) {
 	err := db.Model(&models.User{}).Where(&models.User{Email: email}).Count(&userCount).Error
 	return userCount > 0, err
 }
-
-func CreateUser(db *gorm.DB, name string, email string, password string, accessToken string) error {
-	user := models.User{
-		Name:        name,
+func CheckUserCredentials(db *gorm.DB, email string, password string) (bool, error) {
+	var userCount int64
+	err := db.Model(&models.User{}).Where(&models.User{Email: email, Password: password}).Count(&userCount).Error
+	return userCount > 0, err
+}
+func GenerateUserToken(db *gorm.DB, email string, accessToken string) error {
+	UserToken := models.UserToken{
 		Email:       email,
-		Password:    password,
 		AccessToken: accessToken,
+	}
+	err := db.Model(&models.UserToken{}).Create(&UserToken).Error
+	return err
+}
+func CreateUser(db *gorm.DB, name string, email string, password string) error {
+	user := models.User{
+		Name:     name,
+		Email:    email,
+		Password: password,
 	}
 	err := db.Model(&models.User{}).Create(&user).Error
 	return err
+}
+func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, error) {
+	result := int64(0)
+	movie := models.Movie{Name: movieName}
+	err := db.Model(&models.Movie{}).Where(&movie).Count(&result).Error
+	if err != nil {
+		return 0, errors.Wrap(err, "db.UpdateMovieRating")
+	}
+
+	if result == 0 {
+		movie.Name = movieName
+		movie.Rating = float64(rating)
+		movie.Count = 1
+		err = db.Model(&models.Movie{}).Save(&movie).Error
+		if err != nil {
+			return 0, errors.Wrap(err, "db.UpdateMovieRating")
+		}
+		return float32(rating), nil
+	}
+	err = db.Where(&models.Movie{Name: movieName}).First(&movie).Error
+	if err != nil {
+		return 0, errors.Wrap(err, "db.UpdateMovieRating")
+	}
+	curRating := (movie.Rating*float64(movie.Count) + float64(rating)) / float64(movie.Count+1)
+	movie.Rating = curRating
+	movie.Count += 1
+
+	db.Model(&models.Movie{}).Where(&models.Movie{Name: movie.Name}).Updates(models.Movie{Rating: movie.Rating, Count: movie.Count})
+	return float32(curRating), errors.Wrap(err, "db.UpdateMovieRating")
 }

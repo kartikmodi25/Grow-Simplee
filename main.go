@@ -17,6 +17,7 @@ func main() {
 	db, _ := postgres.GetConnection()
 	db.AutoMigrate(&models.Movie{})
 	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.UserToken{})
 	r := router.SetupRouter(db)
 	err := godotenv.Load()
 	if err != nil {
