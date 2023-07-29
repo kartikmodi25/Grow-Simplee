@@ -104,3 +104,29 @@ func RateMovie(db *gorm.DB) func(c *gin.Context) {
 		c.JSON(http.StatusOK, avgRating)
 	}
 }
+func ListMovies(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		// Validate through access-token
+		movieList, err := postgres.GetMoviesData(db)
+		if err != nil {
+			log.Error().Err(err).Msg("error in retreiving movie list from db")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list, try again"})
+			return
+		}
+		c.JSON(http.StatusOK, movieList)
+	}
+}
+func ListMovieRatings(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		// Validate through access-token
+		movieList, err := postgres.GetMovieRatings(db)
+		if err != nil {
+			log.Error().Err(err).Msg("error in retreiving movie list from db")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list, try again"})
+			return
+		}
+		c.JSON(http.StatusOK, movieList)
+	}
+}

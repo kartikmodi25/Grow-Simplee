@@ -15,5 +15,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/users", server.RegisterUser(db))
 	r.POST("/login", server.LoginUser(db))
 	r.POST("/rate", server.RateMovie(db))
+	r.GET("/listmovies", server.ListMovies(db))
+	r.GET("/listmovieratings", server.ListMovieRatings(db))
 	return r
 }

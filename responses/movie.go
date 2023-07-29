@@ -21,3 +21,7 @@ type Movie struct {
 	TotalPages   int `json:"total_pages"`
 	TotalResults int `json:"total_results"`
 }
+type MovieRating struct {
+	Name   string
+	Rating float64
+}

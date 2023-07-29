@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"backend-assignment/database/models"
+	"backend-assignment/responses"
 	"fmt"
 	"log"
 	"os"
@@ -90,4 +91,23 @@ func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, err
 
 	db.Model(&models.Movie{}).Where(&models.Movie{Name: movie.Name}).Updates(models.Movie{Rating: movie.Rating, Count: movie.Count})
 	return float32(curRating), errors.Wrap(err, "db.UpdateMovieRating")
+}
+func GetMoviesData(db *gorm.DB) ([]string, error) {
+	movies := []models.Movie{}
+	err := db.Where(&models.Movie{}).Find(&movies).Error
+	res := make([]string, 0, len(movies))
+	for _, u := range movies {
+		res = append(res, u.Name)
+	}
+	return res, errors.Wrap(err, "db.ListMovies")
+}
+func GetMovieRatings(db *gorm.DB) ([]responses.MovieRating, error) {
+	movies := []models.Movie{}
+	err := db.Where(&models.Movie{}).Find(&movies).Error
+
+	res := make([]responses.MovieRating, 0, len(movies))
+	for _, u := range movies {
+		res = append(res, responses.MovieRating{Name: u.Name, Rating: u.Rating})
+	}
+	return res, errors.Wrap(err, "db.ListMovies")
 }

@@ -20,16 +20,14 @@ func SearchMovie(query string) string {
 
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
-	fmt.Printf("Type of variable1: %T\n", body)
 	var movieData responses.Movie
 	err := json.Unmarshal([]byte(body), &movieData)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
 		return ""
 	}
-	if movieData.TotalPages == 0 {
+	if movieData.TotalResults == 0 {
 		return ""
 	}
-
 	return movieData.Results[0].Title
 }
