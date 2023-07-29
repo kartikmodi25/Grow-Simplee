@@ -20,7 +20,7 @@ type postgres struct {
 const DSN = "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=Asia/Kolkata"
 
 func AutoMigrate(db *gorm.DB) error {
-	err := db.AutoMigrate(&models.Movie{}, &models.User{}, &models.UserToken{})
+	err := db.AutoMigrate(&models.Movie{}, &models.User{})
 	return errors.Wrap(err, "db.AutoMigrate")
 }
 func GetConnection() (*gorm.DB, error) {
@@ -48,14 +48,6 @@ func CheckUserCredentials(db *gorm.DB, email string, password string) (bool, err
 	var userCount int64
 	err := db.Model(&models.User{}).Where(&models.User{Email: email, Password: password}).Count(&userCount).Error
 	return userCount > 0, errors.Wrap(err, "db.CheckUserCredentials")
-}
-func GenerateUserToken(db *gorm.DB, email string, accessToken string) error {
-	UserToken := models.UserToken{
-		Email:       email,
-		AccessToken: accessToken,
-	}
-	err := db.Model(&models.UserToken{}).Create(&UserToken).Error
-	return errors.Wrap(err, "db.GenerateUserToken")
 }
 func CreateUser(db *gorm.DB, name string, email string, password string) error {
 	user := models.User{

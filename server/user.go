@@ -74,14 +74,15 @@ func LoginUser(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user with entered credentials does not exist"})
 			return
 		}
-		accessToken := "dummyAccessToken"
-		err = postgres.GenerateUserToken(db, user.Email, accessToken)
+		accessToken, err := utils.GenerateJWTToken(user.Email)
 		if err != nil {
 			log.Error().Err(err).Str("email", user.Email).Msg("error generating access token")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token, try again"})
 			return
 		}
-		c.JSON(http.StatusCreated, accessToken)
+
+		// Send the token in the response
+		c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
 	}
 }
 

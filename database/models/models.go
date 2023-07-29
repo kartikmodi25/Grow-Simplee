@@ -15,8 +15,3 @@ type Movie struct {
 	Rating float64 `json:"rating"`
 	Count  int64   `json:"Count"`
 }
-type UserToken struct {
-	gorm.Model
-	Email       string `json:"email"`
-	AccessToken string `json:"accessToken"`
-}
