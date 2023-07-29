@@ -19,6 +19,10 @@ func SearchMovie(query string) string {
 	req.Header.Add("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZTVjOTBkNDE4MzZlZGRlYWY5ZTE5OTMwMTE1NmE5OSIsInN1YiI6IjY0YzM2OGRhZDg2MWFmMDBmZmY5NTJhMCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xXgIgp5b98nd6182E5i3o6L5-NsHzbmUEuItl8LyQLI")
 
 	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Err(err).Msg("failed to receive response from external server")
+		return ""
+	}
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 	var movieData responses.Movie
