@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 func SearchMovie(query string) string {
@@ -16,14 +18,13 @@ func SearchMovie(query string) string {
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmZTVjOTBkNDE4MzZlZGRlYWY5ZTE5OTMwMTE1NmE5OSIsInN1YiI6IjY0YzM2OGRhZDg2MWFmMDBmZmY5NTJhMCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xXgIgp5b98nd6182E5i3o6L5-NsHzbmUEuItl8LyQLI")
 
-	res, _ := http.DefaultClient.Do(req)
-
+	res, err := http.DefaultClient.Do(req)
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 	var movieData responses.Movie
-	err := json.Unmarshal([]byte(body), &movieData)
+	err = json.Unmarshal([]byte(body), &movieData)
 	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
+		log.Err(err).Msg("Error unmarshaling JSON:")
 		return ""
 	}
 	if movieData.TotalResults == 0 {

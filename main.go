@@ -1,34 +1,40 @@
 package main
 
 import (
-	"backend-assignment/database/models"
 	"backend-assignment/database/postgres"
 	"backend-assignment/router"
-	"fmt"
-	"log"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	fmt.Println("Hello World!")
-	db, _ := postgres.GetConnection()
-	db.AutoMigrate(&models.Movie{})
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.UserToken{})
-	r := router.SetupRouter(db)
-	err := godotenv.Load()
+	db, err := postgres.GetConnection()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Err(err).Msg("database connection failed, exiting")
+		return
+	}
+	err = db.AutoMigrate()
+	if err != nil {
+		log.Err(err).Msg("failed to create tables in database")
+		return
+	}
+	r := router.SetupRouter(db)
+	err = godotenv.Load()
+	if err != nil {
+		log.Err(err).Msg("error loading .env file")
+		return
 	}
 	portStr := os.Getenv("PORT")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		log.Fatal("Invalid port number")
+		log.Err(err).Msg("invalid port number")
+		return
 	}
 	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
-		log.Fatal(err)
+		log.Err(err)
+		return
 	}
 }

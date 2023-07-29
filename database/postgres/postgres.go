@@ -19,6 +19,10 @@ type postgres struct {
 
 const DSN = "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=Asia/Kolkata"
 
+func AutoMigrate(db *gorm.DB) error {
+	err := db.AutoMigrate(&models.Movie{}, &models.User{}, &models.UserToken{})
+	return errors.Wrap(err, "db.AutoMigrate")
+}
 func GetConnection() (*gorm.DB, error) {
 	err := godotenv.Load()
 	if err != nil {
@@ -30,21 +34,20 @@ func GetConnection() (*gorm.DB, error) {
 		// you can disable it during initialization if it is not required, you will gain about 30%+ performance improvement after that
 		SkipDefaultTransaction: true,
 	})
-	fmt.Println(dsn, sqlDb)
 	if err != nil {
-		return nil, errors.Wrap(err, "db.New")
+		return nil, errors.Wrap(err, "db.GetConnection()")
 	}
 	return sqlDb, nil
 }
 func CheckExistingUser(db *gorm.DB, email string) (bool, error) {
 	var userCount int64
 	err := db.Model(&models.User{}).Where(&models.User{Email: email}).Count(&userCount).Error
-	return userCount > 0, err
+	return userCount > 0, errors.Wrap(err, "db.CheckExistingUser")
 }
 func CheckUserCredentials(db *gorm.DB, email string, password string) (bool, error) {
 	var userCount int64
 	err := db.Model(&models.User{}).Where(&models.User{Email: email, Password: password}).Count(&userCount).Error
-	return userCount > 0, err
+	return userCount > 0, errors.Wrap(err, "db.CheckUserCredentials")
 }
 func GenerateUserToken(db *gorm.DB, email string, accessToken string) error {
 	UserToken := models.UserToken{
@@ -52,7 +55,7 @@ func GenerateUserToken(db *gorm.DB, email string, accessToken string) error {
 		AccessToken: accessToken,
 	}
 	err := db.Model(&models.UserToken{}).Create(&UserToken).Error
-	return err
+	return errors.Wrap(err, "db.GenerateUserToken")
 }
 func CreateUser(db *gorm.DB, name string, email string, password string) error {
 	user := models.User{
@@ -61,7 +64,7 @@ func CreateUser(db *gorm.DB, name string, email string, password string) error {
 		Password: password,
 	}
 	err := db.Model(&models.User{}).Create(&user).Error
-	return err
+	return errors.Wrap(err, "db.CreateUser")
 }
 func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, error) {
 	result := int64(0)
@@ -99,7 +102,7 @@ func GetMoviesData(db *gorm.DB) ([]string, error) {
 	for _, u := range movies {
 		res = append(res, u.Name)
 	}
-	return res, errors.Wrap(err, "db.ListMovies")
+	return res, errors.Wrap(err, "db.GetMoviesData")
 }
 func GetMovieRatings(db *gorm.DB) ([]responses.MovieRating, error) {
 	movies := []models.Movie{}
@@ -109,5 +112,5 @@ func GetMovieRatings(db *gorm.DB) ([]responses.MovieRating, error) {
 	for _, u := range movies {
 		res = append(res, responses.MovieRating{Name: u.Name, Rating: u.Rating})
 	}
-	return res, errors.Wrap(err, "db.ListMovies")
+	return res, errors.Wrap(err, "db.GetMovieRatings")
 }
