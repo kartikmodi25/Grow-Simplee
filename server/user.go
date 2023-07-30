@@ -36,7 +36,7 @@ func RegisterUser(db *gorm.DB) func(c *gin.Context) {
 		}
 		password := "qwerty"
 		err = postgres.CreateUser(db, user.Name, user.Email, password)
-		c.JSON(http.StatusCreated, user)
+		c.JSON(http.StatusCreated, gin.H{"user": user})
 	}
 }
 
@@ -116,7 +116,7 @@ func RateMovie(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update movie rating, try again"})
 			return
 		}
-		c.JSON(http.StatusOK, avgRating)
+		c.JSON(http.StatusOK, gin.H{"average_rating": avgRating})
 	}
 }
 func ListMovies(db *gorm.DB) func(c *gin.Context) {
@@ -130,7 +130,7 @@ func ListMovies(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list, try again"})
 			return
 		}
-		c.JSON(http.StatusOK, movieList)
+		c.JSON(http.StatusOK, gin.H{"movie_list": movieList})
 	}
 }
 func ListMovieRatings(db *gorm.DB) func(c *gin.Context) {
@@ -143,6 +143,6 @@ func ListMovieRatings(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list with ratings, try again"})
 			return
 		}
-		c.JSON(http.StatusOK, movieList)
+		c.JSON(http.StatusOK, gin.H{"movie_list": movieList})
 	}
 }

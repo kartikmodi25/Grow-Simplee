@@ -16,7 +16,7 @@ func main() {
 		log.Err(err).Msg("database connection failed, exiting")
 		return
 	}
-	err = db.AutoMigrate()
+	err = postgres.AutoMigrate(db)
 	if err != nil {
 		log.Err(err).Msg("failed to create tables in database")
 		return
