@@ -36,6 +36,11 @@ func RegisterUser(db *gorm.DB) func(c *gin.Context) {
 		}
 		password := "qwerty"
 		err = postgres.CreateUser(db, user.Name, user.Email, password)
+		if err != nil {
+			log.Error().Err(err).Str("email", user.Email).Msg("error creating user in db")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user, try again"})
+			return
+		}
 		c.JSON(http.StatusCreated, gin.H{"user": user})
 	}
 }
