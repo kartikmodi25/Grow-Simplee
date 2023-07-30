@@ -11,10 +11,10 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Initialize Gin router
 	r := gin.Default()
-
+	authRoutes := r.Group("/auth")
 	// Register routes
-	r.POST("/users", server.RegisterUser(db))
-	r.POST("/login", server.LoginUser(db))
+	authRoutes.POST("/register", server.RegisterUser(db))
+	authRoutes.POST("/login", server.LoginUser(db))
 	r.POST("/rate", middlewares.JwtMiddleware, server.RateMovie(db))
 	r.GET("/listmovies", server.ListMovies(db))
 	r.GET("/listmovieratings", server.ListMovieRatings(db))
