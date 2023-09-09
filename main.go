@@ -1,40 +1,47 @@
 package main
 
 import (
+	"backend-assignment/config"
 	"backend-assignment/database/postgres"
-	"backend-assignment/router"
-	"os"
-	"strconv"
+	"backend-assignment/server"
+	"context"
+	"flag"
 
-	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	db, err := postgres.GetConnection()
+	ctx := context.Background()
+	configPath := flag.String("config", ".", "path to directory containing config.yaml, default current directory")
+	flag.Parse()
+	err := config.Init(ctx, *configPath, config.ConfigName, "local")
 	if err != nil {
-		log.Err(err).Msg("database connection failed, exiting")
+		log.Err(err).Msg("failed to initialise the config")
 		return
 	}
-	err = postgres.AutoMigrate(db)
+	var c config.Database
+	c.Host = "localhost"
+	c.Name = "postgres3"
+	c.Password = "252900"
+	c.Port = 5432
+	c.Username = "postgres"
+	db, err := postgres.New(c)
+	if err != nil {
+		log.Err(err).Msg("failed to connect to database, exiting")
+	}
+	err = db.AutoMigrate()
 	if err != nil {
 		log.Err(err).Msg("failed to create tables in database")
 		return
 	}
-	r := router.SetupRouter(db)
-	err = godotenv.Load()
+	server, err := server.Init(ctx, db)
 	if err != nil {
-		log.Err(err).Msg("error loading .env file")
+		log.Err(err).Msg("Service.Init failed: , exiting")
 		return
 	}
-	portStr := os.Getenv("PORT")
-	port, err := strconv.Atoi(portStr)
+	err = server.Start(ctx)
 	if err != nil {
-		log.Err(err).Msg("invalid port number")
-		return
-	}
-	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
-		log.Err(err)
+		log.Err(err).Msg("Service.Run failed: , exiting")
 		return
 	}
 }

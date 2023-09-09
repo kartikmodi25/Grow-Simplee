@@ -1,67 +1,97 @@
 package postgres
 
 import (
+	"backend-assignment/config"
+	"backend-assignment/database"
 	"backend-assignment/database/models"
 	"backend-assignment/responses"
+	"context"
+	"database/sql"
 	"fmt"
-	"log"
-	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	pq "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type postgres struct {
-	_db *gorm.DB
+	conf config.Database
+	_db  *gorm.DB
 }
 
-const DSN = "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=Asia/Kolkata"
+const DSN = "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable TimeZone=Asia/Kolkata"
 
-func AutoMigrate(db *gorm.DB) error {
-	err := db.AutoMigrate(&models.Movie{}, &models.User{})
+func (pg *postgres) BeginTxn(opts ...*sql.TxOptions) database.DB {
+	return &postgres{
+		conf: pg.conf,
+		_db:  pg._db.Begin(opts...),
+	}
+}
+
+func (pg *postgres) Commit() error {
+	return pg._db.Commit().Error
+}
+
+func (pg *postgres) Rollback() error {
+	return pg._db.Rollback().Error
+}
+func (pg *postgres) db() *gorm.DB {
+	return pg._db.Debug()
+}
+func (pg *postgres) AutoMigrate() error {
+	db := pg.db()
+	tables := []interface{}{
+		&models.Movie{},
+		&models.User{},
+		// May be useful in the future. It is kept here for reference purposes.
+		/*
+			&database.Token{},
+		*/
+	}
+	err := db.AutoMigrate(tables...)
 	return errors.Wrap(err, "db.AutoMigrate")
 }
-func GetConnection() (*gorm.DB, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+func New(c config.Database) (database.DB, error) {
+	db := &postgres{
+		conf: c,
 	}
-	dsn := fmt.Sprintf(DSN, os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	dsn := fmt.Sprintf(DSN, c.Host, c.Port, c.Username, c.Password, c.Name)
 	sqlDb, err := gorm.Open(pq.Open(dsn), &gorm.Config{
 		//  Doc: GORM perform write (create/update/delete) operations run inside a transaction to ensure data consistency
 		// you can disable it during initialization if it is not required, you will gain about 30%+ performance improvement after that
 		SkipDefaultTransaction: true,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "db.GetConnection()")
+		return nil, errors.Wrap(err, "db.New")
 	}
-	return sqlDb, nil
+
+	db._db = sqlDb
+
+	return db, nil
 }
-func CheckExistingUser(db *gorm.DB, email string) (bool, error) {
+func (pg *postgres) CheckExistingUser(ctx context.Context, email string) (bool, error) {
 	var userCount int64
-	err := db.Model(&models.User{}).Where(&models.User{Email: email}).Count(&userCount).Error
+	err := pg.db().Model(&models.User{}).Where(&models.User{Email: email}).Count(&userCount).Error
 	return userCount > 0, errors.Wrap(err, "db.CheckExistingUser")
 }
-func CheckUserCredentials(db *gorm.DB, email string, password string) (bool, error) {
+func (pg *postgres) CheckUserCredentials(ctx context.Context, email string, password string) (bool, error) {
 	var userCount int64
-	err := db.Model(&models.User{}).Where(&models.User{Email: email, Password: password}).Count(&userCount).Error
+	err := pg.db().Model(&models.User{}).Where(&models.User{Email: email, Password: password}).Count(&userCount).Error
 	return userCount > 0, errors.Wrap(err, "db.CheckUserCredentials")
 }
-func CreateUser(db *gorm.DB, name string, email string, password string) error {
+func (pg *postgres) CreateUser(ctx context.Context, name string, email string, password string) error {
 	user := models.User{
 		Name:     name,
 		Email:    email,
 		Password: password,
 	}
-	err := db.Model(&models.User{}).Create(&user).Error
+	err := pg.db().Model(&models.User{}).Create(&user).Error
 	return errors.Wrap(err, "db.CreateUser")
 }
-func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, error) {
+func (pg *postgres) UpdateMovieRating(ctx context.Context, movieName string, rating int8) (float32, error) {
 	result := int64(0)
 	movie := models.Movie{Name: movieName}
-	err := db.Model(&models.Movie{}).Where(&movie).Count(&result).Error
+	err := pg.db().Model(&models.Movie{}).Where(&movie).Count(&result).Error
 	if err != nil {
 		return 0, errors.Wrap(err, "db.UpdateMovieRating")
 	}
@@ -70,13 +100,13 @@ func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, err
 		movie.Name = movieName
 		movie.Rating = float64(rating)
 		movie.Count = 1
-		err = db.Model(&models.Movie{}).Save(&movie).Error
+		err = pg.db().Model(&models.Movie{}).Save(&movie).Error
 		if err != nil {
 			return 0, errors.Wrap(err, "db.UpdateMovieRating")
 		}
 		return float32(rating), nil
 	}
-	err = db.Where(&models.Movie{Name: movieName}).First(&movie).Error
+	err = pg.db().Where(&models.Movie{Name: movieName}).First(&movie).Error
 	if err != nil {
 		return 0, errors.Wrap(err, "db.UpdateMovieRating")
 	}
@@ -84,21 +114,21 @@ func UpdateMovieRating(db *gorm.DB, movieName string, rating int8) (float32, err
 	movie.Rating = curRating
 	movie.Count += 1
 
-	db.Model(&models.Movie{}).Where(&models.Movie{Name: movie.Name}).Updates(models.Movie{Rating: movie.Rating, Count: movie.Count})
+	pg.db().Model(&models.Movie{}).Where(&models.Movie{Name: movie.Name}).Updates(models.Movie{Rating: movie.Rating, Count: movie.Count})
 	return float32(curRating), errors.Wrap(err, "db.UpdateMovieRating")
 }
-func GetMoviesData(db *gorm.DB) ([]string, error) {
+func (pg *postgres) GetMoviesData(ctx context.Context) ([]string, error) {
 	movies := []models.Movie{}
-	err := db.Where(&models.Movie{}).Find(&movies).Error
+	err := pg.db().Where(&models.Movie{}).Find(&movies).Error
 	res := make([]string, 0, len(movies))
 	for _, u := range movies {
 		res = append(res, u.Name)
 	}
 	return res, errors.Wrap(err, "db.GetMoviesData")
 }
-func GetMovieRatings(db *gorm.DB) ([]responses.MovieRating, error) {
+func (pg *postgres) GetMovieRatings(ctx context.Context) ([]responses.MovieRating, error) {
 	movies := []models.Movie{}
-	err := db.Where(&models.Movie{}).Find(&movies).Error
+	err := pg.db().Where(&models.Movie{}).Find(&movies).Error
 
 	res := make([]responses.MovieRating, 0, len(movies))
 	for _, u := range movies {

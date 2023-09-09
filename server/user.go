@@ -1,7 +1,6 @@
 package server
 
 import (
-	"backend-assignment/database/postgres"
 	"backend-assignment/requests"
 	"backend-assignment/utils"
 	"errors"
@@ -10,11 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	logger "github.com/rs/zerolog/log"
-	"gorm.io/gorm"
 )
 
-func RegisterUser(db *gorm.DB) func(c *gin.Context) {
+func RegisterUser(s *Server) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		ctx := c.Request.Context()
 		user := requests.User{}
 		requestId := requests.ID(c)
 		log := logger.With().Str("requestID", requestId).Str("email", user.Email).Logger()
@@ -23,7 +22,7 @@ func RegisterUser(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse request body"})
 			return
 		}
-		exist, err := postgres.CheckExistingUser(db, user.Email)
+		exist, err := s.db.CheckExistingUser(ctx, user.Email)
 		if err != nil {
 			log.Error().Err(err).Str("email", user.Email).Msg("error checking user in db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user, try again"})
@@ -35,7 +34,7 @@ func RegisterUser(db *gorm.DB) func(c *gin.Context) {
 			return
 		}
 		password := "qwerty"
-		err = postgres.CreateUser(db, user.Name, user.Email, password)
+		err = s.db.CreateUser(ctx, user.Name, user.Email, password)
 		if err != nil {
 			log.Error().Err(err).Str("email", user.Email).Msg("error creating user in db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user, try again"})
@@ -45,8 +44,9 @@ func RegisterUser(db *gorm.DB) func(c *gin.Context) {
 	}
 }
 
-func LoginUser(db *gorm.DB) func(c *gin.Context) {
+func LoginUser(s *Server) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		ctx := c.Request.Context()
 		user := requests.LoginUser{}
 
 		if err := c.ShouldBindJSON(&user); err != nil {
@@ -57,7 +57,7 @@ func LoginUser(db *gorm.DB) func(c *gin.Context) {
 		requestId := requests.ID(c)
 		log := logger.With().Str("requestID", requestId).Str("email", user.Email).Logger()
 
-		exist, err := postgres.CheckExistingUser(db, user.Email)
+		exist, err := s.db.CheckExistingUser(ctx, user.Email)
 		if err != nil {
 			log.Error().Err(err).Str("email", user.Email).Msg("error checking user in db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login user, try again"})
@@ -68,7 +68,7 @@ func LoginUser(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user does not exist"})
 			return
 		}
-		validLogin, err := postgres.CheckUserCredentials(db, user.Email, user.Password)
+		validLogin, err := s.db.CheckUserCredentials(ctx, user.Email, user.Password)
 		if err != nil {
 			log.Error().Err(err).Str("email", user.Email).Msg("error checking user in db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login user, try again"})
@@ -91,8 +91,9 @@ func LoginUser(db *gorm.DB) func(c *gin.Context) {
 	}
 }
 
-func RateMovie(db *gorm.DB) func(c *gin.Context) {
+func RateMovie(s *Server) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		ctx := c.Request.Context()
 		movieData := requests.Movie{}
 		if err := c.ShouldBindJSON(&movieData); err != nil {
 			log.Error().Err(err).Msg("failed to parse request body")
@@ -115,7 +116,7 @@ func RateMovie(db *gorm.DB) func(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "searched movie does not exist"})
 			return
 		}
-		avgRating, err := postgres.UpdateMovieRating(db, movieName, rating)
+		avgRating, err := s.db.UpdateMovieRating(ctx, movieName, rating)
 		if err != nil {
 			log.Error().Err(err).Str("name", movieData.Name).Msg("error updating movie in db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update movie rating, try again"})
@@ -124,12 +125,13 @@ func RateMovie(db *gorm.DB) func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"average_rating": avgRating})
 	}
 }
-func ListMovies(db *gorm.DB) func(c *gin.Context) {
+func ListMovies(s *Server) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		ctx := c.Request.Context()
 		requestId := requests.ID(c)
 		log := logger.With().Str("requestID", requestId).Logger()
 		// Validate through access-token
-		movieList, err := postgres.GetMoviesData(db)
+		movieList, err := s.db.GetMoviesData(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error in retreiving movie list from db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list, try again"})
@@ -138,11 +140,12 @@ func ListMovies(db *gorm.DB) func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"movie_list": movieList})
 	}
 }
-func ListMovieRatings(db *gorm.DB) func(c *gin.Context) {
+func ListMovieRatings(s *Server) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		ctx := c.Request.Context()
 		requestId := requests.ID(c)
 		log := logger.With().Str("requestID", requestId).Logger()
-		movieList, err := postgres.GetMovieRatings(db)
+		movieList, err := s.db.GetMovieRatings(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error in retreiving movie list from db")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retreive movie list with ratings, try again"})
