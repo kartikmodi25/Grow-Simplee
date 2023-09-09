@@ -1,6 +1,8 @@
-# Grow-Simplee
+# Movie_rater_application
 
-To run the application, run the commant *go run main.go*, Make sure the main.go file is on the cwd.
+This application can register a new user, log in to an existing one, rate a new movie, and get the list of movies with their current ratings.
+
+To run the application, run the command *go run main.go*, Make sure the main.go file is on the cwd.
 
 Make sure to change the enviornment variables according to your local configurations.
 
