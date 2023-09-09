@@ -2,7 +2,7 @@
 
 To run the application, run the commant *go run main.go*, Make sure the main.go file is on the cwd.
 
-Make sure to change the enviornment variables in .env file according to your local configurations.
+Make sure to change the enviornment variables according to your local configurations.
 
 API Documentation: https://docs.google.com/document/d/1G2XkiBG61FWn67sFQ73y7Rh2hZdF9eUtVTlJyeLvhdw/edit?usp=sharing
 
