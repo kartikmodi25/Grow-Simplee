@@ -2,6 +2,8 @@
 
 This application can register a new user, log in to an existing one, rate a new movie, and get the list of movies with their current ratings.
 
+The default password is set to "qwerty"
+
 To run the application, run the command *go run main.go*, Make sure the main.go file is on the cwd.
 
 Make sure to change the enviornment variables according to your local configurations.
