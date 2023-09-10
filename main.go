@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,12 +20,12 @@ func main() {
 		log.Err(err).Msg("failed to initialise the config")
 		return
 	}
+	err = godotenv.Load()
+	if err != nil {
+		log.Err(err).Msg("failed to load enviornment variables")
+		return
+	}
 	var c config.Database
-	c.Host = "localhost"
-	c.Name = "postgres3"
-	c.Password = "252900"
-	c.Port = 5432
-	c.Username = "postgres"
 	db, err := postgres.New(c)
 	if err != nil {
 		log.Err(err).Msg("failed to connect to database, exiting")
